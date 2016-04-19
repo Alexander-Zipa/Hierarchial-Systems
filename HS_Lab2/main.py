@@ -43,11 +43,15 @@ def interval_weights(A):
     u += [0] * n
     delta = linprog(c=c, A_ub=B, b_ub=b, bounds=tuple([(l[i], u[i]) for i in range(0, n*n)]))
     l = 0
+    print('Before:')
+    disp_inter_matr(A)
     for i in range(0, n - 1):
         for j in range(i + 1, n):
             A[i][j][0] *= sp.e ** (- delta.x[l])
             A[i][j][1] *= sp.e ** delta.x[round(l + n * (n - 1) / 2)]
             l += 1
+    print('After:')
+    disp_inter_matr(A)
     B = [0] * n * (n - 1)
     for i in range(0, n * (n - 1)):
         B[i] = [0] * n
@@ -68,10 +72,35 @@ def interval_weights(A):
         w[i] = [0] * 2
         c = [0] * n
         c[i] = 1
-        w[i][0] = linprog(c=c, A_ub=B, b_ub=b, bounds=tuple([(l[i], u[i]) for i in range(0, n)]))
-        w[i][0] = sp.e ** w[i][0].x[i]
+        t = linprog(c=c, A_ub=B, b_ub=b, bounds=tuple([(l[i], u[i]) for i in range(0, n)]))
+        tl = [0] * n
+        for j in range(0, n):
+            tl[j] = sp.e ** t.x[j]
+        tl = [x / sum(tl) for x in tl]
+        w[i][0] = tl[i]
         c[i] = -1
-        w[i][1] = linprog(c=c, A_ub=B, b_ub=b, bounds=tuple([(l[i], u[i]) for i in range(0, n)]))
-        w[i][1] = sp.e ** w[i][1].x[i]
+        t = linprog(c=c, A_ub=B, b_ub=b, bounds=tuple([(l[i], u[i]) for i in range(0, n)]))
+        tl = [0] * n
+        for j in range(0, n):
+            tl[j] = sp.e ** t.x[j]
+        tl = [x / sum(tl) for x in tl]
+        w[i][1] = tl[i]
     return w
 
+
+def disp_inter_matr(A):
+    for i in A:
+        for j in i:
+            print('[%0.2f; %0.2f] ' % (j[0], j[1]), end='')
+        print()
+
+w = [0] * len(D)
+for i in range(len(D)):
+    w[i] = [0] * 2
+    print('Interval matrix', i, 'section', 0,)
+    w[i][0] = interval_weights(section(D[i], 0))
+    print('Interval matrix', i, 'section', 0.5)
+    w[i][1] = interval_weights(section(D[i], 0.5))
+    print('w[0]=')
+    print('w[0.5]=')
+    disp_inter_matr(w[i])
